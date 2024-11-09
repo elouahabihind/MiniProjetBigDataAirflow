@@ -1,0 +1,200 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <div class="loading" id="loading">Loading data...</div>
+
+    <div class="chart-container">
+        <h2>Wind Speed by Region</h2>
+        <div id="chartDiv">
+            <canvas id="windByRegionChart"></canvas>
+        </div>
+        <h2>Wind Speed by City</h2>
+        <canvas id="windByCityChart"></canvas>
+        
+        <h2>Wind Speed by Month</h2>
+        <canvas id="windByMonthChart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+    // Fetching wind data from the API
+    const loadingSpinner = document.getElementById('loading');
+    const ctxRegion = document.getElementById('windByRegionChart').getContext('2d');
+    const ctxCity = document.getElementById('windByCityChart').getContext('2d');
+    const ctxMonth = document.getElementById('windByMonthChart').getContext('2d');
+    let windData = [];
+
+    // Fetch wind data from API
+    function fetchData() {
+        loadingSpinner.style.display = 'block';
+        fetch('http://127.0.0.1:5000/wind')
+            .then(response => response.json())
+            .then(data => {
+                windData = data;
+                renderCharts();
+            })
+            .catch(error => console.error('Error fetching data:', error))
+            .finally(() => {
+                loadingSpinner.style.display = 'none';
+            });
+    }
+
+    // Render charts with the fetched data
+    function renderCharts() {
+        // Data for wind speed by region
+        const regionWindSpeeds = {};
+        windData.forEach(item => {
+            const region = item.region;
+            const windSpeed = parseFloat(item.wind_speed);
+            if (!regionWindSpeeds[region]) {
+                regionWindSpeeds[region] = [];
+            }
+            regionWindSpeeds[region].push(windSpeed);
+        });
+
+        // Calculate average wind speed for each region
+        const regions = Object.keys(regionWindSpeeds);
+        const avgWindSpeedByRegion = regions.map(region => {
+            const speeds = regionWindSpeeds[region];
+            const sum = speeds.reduce((a, b) => a + b, 0);
+            return sum / speeds.length;
+        });
+
+        // Render Wind Speed by Region Chart
+        new Chart(ctxRegion, {
+            type: 'doughnut',
+            data: {
+                labels: regions,
+                datasets: [{
+                    label: 'Average Wind Speed (mph)',
+                    data: avgWindSpeedByRegion,
+                    backgroundColor: ['#FF5733', '#33FF57', '#3357FF', '#FF33A5', '#A533FF'],
+                    borderColor: '#fff',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Average Wind Speed by Region'
+                    }
+                }
+            }
+        });
+
+        // Data for wind speed by city
+        const cities = windData.map(item => item.city);
+        const windSpeedsByCity = windData.map(item => parseFloat(item.wind_speed));
+
+        // Render Wind Speed by City Chart
+        new Chart(ctxCity, {
+            type: 'bar',
+            data: {
+                labels: cities,
+                datasets: [{
+                    label: 'Wind Speed (mph)',
+                    data: windSpeedsByCity,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Wind Speed by City'
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'City'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Wind Speed (mph)'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Data for wind speed by month
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthsWithData = [];
+        const avgMonthlyWindSpeeds = [];
+        windData.forEach(item => {
+            const month = new Date(item.date).getMonth(); // Get month from date
+            if (!monthsWithData.includes(month)) {
+                monthsWithData.push(month);
+            }
+            const windSpeed = parseFloat(item.wind_speed);
+            if (avgMonthlyWindSpeeds[month]) {
+                avgMonthlyWindSpeeds[month].push(windSpeed);
+            } else {
+                avgMonthlyWindSpeeds[month] = [windSpeed];
+            }
+        });
+
+        // Calculate average wind speed for each month
+        const filteredMonths = monthsWithData.map(month => months[month]);
+        const filteredAvgMonthlyWindSpeeds = monthsWithData.map(month => {
+            const speeds = avgMonthlyWindSpeeds[month];
+            return speeds.reduce((a, b) => a + b, 0) / speeds.length;
+        });
+
+        // Render Wind Speed by Month Chart
+        new Chart(ctxMonth, {
+            type: 'line',
+            data: {
+                labels: filteredMonths,
+                datasets: [{
+                    label: 'Average Wind Speed (mph)',
+                    data: filteredAvgMonthlyWindSpeeds,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Wind Speed by Month'
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Wind Speed (mph)'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Fetch data on page load
+    fetchData();
+    </script>
+
+{% endblock %}

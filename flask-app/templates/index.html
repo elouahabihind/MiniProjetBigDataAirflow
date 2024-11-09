@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <!-- <h1>Welcome to the Weather Dashboard</h1>
+    <p>Choose a category from the navbar to view data on Wind, Temperature, Pressure, and Humidity.</p> -->
+
+    <section class="project-description">
+        <h1>Project Overview</h1>
+        <p>
+            This project is part of the Big Data module, supervised by Mr. Yasyn El Yusufi, and created by Hind El Ouahabi and Mohcine Boudenjal. 
+            The goal of this project is to visualize weather data gathered from multiple sources, including:
+        </p>
+
+        <ul>
+            <li><strong>WeatherStack API</strong>: Provides up-to-date weather information for a list of 300 cities globally, ensuring real-time weather data for visualization.</li>
+            <li><strong>MySQL Database with Kaggle CSV Data</strong>: Contains a historical dataset of average daily temperatures from 1995 to 2020 for over 300 cities worldwide. With more than 2 million rows, this data enables an in-depth analysis of temperature trends across decades.</li>
+            <li><strong>JSON Data Files Extracted from OpenWeatherMap</strong>: These files include extensive weather data, such as wind speed, pressure, and temperature, for over 300 cities globally, allowing for detailed visualizations of these weather attributes.</li>
+        </ul>
+
+        <p>
+            The project employs an <strong>Airflow pipeline</strong> to automate the scheduling and processing of this data, ensuring that updates and visualizations are timely and manageable. 
+            Through this dashboard, users can navigate various weather categories like wind, temperature, pressure, and humidity to gain insights into weather patterns across cities.
+        </p>
+    </section>
+{% endblock %}
