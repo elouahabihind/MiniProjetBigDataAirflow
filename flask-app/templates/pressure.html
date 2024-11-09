@@ -1,0 +1,161 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <div class="loading" id="loading">Loading data...</div>
+
+    <div class="chart-container">
+        <h2>Average Pressure by Country</h2>
+        <canvas id="pressureByCountryChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2>Average Pressure by Region</h2>
+        <div id="chartDiv">
+            <canvas id="pressureByRegionChart"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const loadingSpinner = document.getElementById('loading');
+        const ctxCountry = document.getElementById('pressureByCountryChart').getContext('2d');
+        const ctxRegion = document.getElementById('pressureByRegionChart').getContext('2d');
+        let pressureData = [];
+
+        // Fetch data from the /pressure endpoint
+        function fetchData() {
+            loadingSpinner.style.display = 'block';
+            fetch('/pressure')
+                .then(response => response.json())
+                .then(data => {
+                    pressureData = data;
+                    renderCharts();
+                })
+                .catch(error => console.error('Error fetching data:', error))
+                .finally(() => {
+                    loadingSpinner.style.display = 'none';
+                });
+        }
+
+        // Render the charts
+        function renderCharts() {
+            const countryPressure = {};
+            const regionPressure = {};
+
+            // Process data to calculate average pressure by country and region
+            pressureData.forEach(item => {
+                const country = item.country;
+                const region = item.region;
+
+                if (!countryPressure[country]) {
+                    countryPressure[country] = { totalPressure: 0, count: 0 };
+                }
+                countryPressure[country].totalPressure += parseFloat(item.pressure);
+                countryPressure[country].count += 1;
+
+                if (!regionPressure[region]) {
+                    regionPressure[region] = { totalPressure: 0, count: 0 };
+                }
+                regionPressure[region].totalPressure += parseFloat(item.pressure);
+                regionPressure[region].count += 1;
+            });
+
+            // Calculate average pressure for each country and region
+            const countries = Object.keys(countryPressure);
+            const avgCountryPressures = countries.map(country => countryPressure[country].totalPressure / countryPressure[country].count);
+
+            const regions = Object.keys(regionPressure);
+            const avgRegionPressures = regions.map(region => regionPressure[region].totalPressure / regionPressure[region].count);
+
+            // Render Average Pressure by Country Chart (Horizontal Bar)
+            new Chart(ctxCountry, {
+                type: 'bar',
+                data: {
+                    labels: countries,
+                    datasets: [{
+                        label: 'Average Pressure (hPa)',
+                        data: avgCountryPressures,
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',  // Horizontal bar chart
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Average Pressure by Country'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Pressure (hPa)'
+                            },
+                            beginAtZero: true
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Country'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Render Average Pressure by Region Chart (Doughnut)
+            new Chart(ctxRegion, {
+                type: 'doughnut',
+                data: {
+                    labels: regions,
+                    datasets: [{
+                        label: 'Average Pressure (hPa)',
+                        data: avgRegionPressures,
+                        backgroundColor: [
+                            'rgba(75, 192, 192, 0.2)',
+                            'rgba(153, 102, 255, 0.2)',
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 159, 64, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Average Pressure by Region'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initial data fetch
+        fetchData();
+    </script>
+{% endblock %}

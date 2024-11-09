@@ -1,0 +1,130 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <div class="loading" id="loading">Loading data...</div>
+
+    <div class="chart-container">
+        <h2>Humidity by City (Bar Chart)</h2>
+        <canvas id="humidityByCityChart"></canvas>
+        
+        <h2>Humidity by Region (Pie Chart)</h2>
+        <div id="chartDiv">
+            <canvas id="humidityByRegionChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+    // Fetching humidity data from the API
+    const loadingSpinner = document.getElementById('loading');
+    const ctxCity = document.getElementById('humidityByCityChart').getContext('2d');
+    const ctxRegion = document.getElementById('humidityByRegionChart').getContext('2d');
+    let humidityData = [];
+
+    // Fetch humidity data from API
+    function fetchData() {
+        loadingSpinner.style.display = 'block';
+        fetch('http://127.0.0.1:5000/humidity')
+            .then(response => response.json())
+            .then(data => {
+                humidityData = data;
+                renderCharts();
+            })
+            .catch(error => console.error('Error fetching data:', error))
+            .finally(() => {
+                loadingSpinner.style.display = 'none';
+            });
+    }
+
+    // Render charts with the fetched data
+    function renderCharts() {
+        // Data for humidity by city
+        const cities = humidityData.map(item => item.city);
+        const humidityByCity = humidityData.map(item => parseFloat(item.humidity));
+
+        // Render Humidity by City Chart (Bar Chart)
+        new Chart(ctxCity, {
+            type: 'bar',
+            data: {
+                labels: cities,
+                datasets: [{
+                    label: 'Humidity (%)',
+                    data: humidityByCity,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Humidity by City'
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'City'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Humidity (%)'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Data for humidity by region
+        const regionHumidity = {};
+        humidityData.forEach(item => {
+            const region = item.region;
+            const humidity = parseFloat(item.humidity);
+            if (!regionHumidity[region]) {
+                regionHumidity[region] = [];
+            }
+            regionHumidity[region].push(humidity);
+        });
+
+        // Calculate average humidity for each region
+        const regions = Object.keys(regionHumidity);
+        const avgHumidityByRegion = regions.map(region => {
+            const humidities = regionHumidity[region];
+            const sum = humidities.reduce((a, b) => a + b, 0);
+            return sum / humidities.length;
+        });
+
+        // Render Humidity by Region Chart (Pie Chart)
+        new Chart(ctxRegion, {
+            type: 'pie',
+            data: {
+                labels: regions,
+                datasets: [{
+                    label: 'Average Humidity (%)',
+                    data: avgHumidityByRegion,
+                    backgroundColor: ['#FF5733', '#33FF57', '#3357FF', '#FF33A5', '#A533FF'],
+                    borderColor: '#fff',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Average Humidity by Region'
+                    }
+                }
+            }
+        });
+    }
+
+    // Fetch data on page load
+    fetchData();
+    </script>
+{% endblock %}

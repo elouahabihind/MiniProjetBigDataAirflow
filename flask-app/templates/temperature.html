@@ -1,0 +1,153 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <div class="loading" id="loading">Loading data...</div>
+
+    <div class="chart-container">
+        <h2>Average Temperature by Month</h2>
+        <canvas id="temperatureByMonthChart"></canvas>
+        
+        <h2>Average Temperature by Region</h2>
+        <canvas id="temperatureByRegionChart"></canvas>
+    </div>
+
+    <script>
+        const loadingSpinner = document.getElementById('loading');
+        const ctxMonth = document.getElementById('temperatureByMonthChart').getContext('2d');
+        const ctxRegion = document.getElementById('temperatureByRegionChart').getContext('2d');
+        let temperatureData = [];
+
+        // Fetch data from the /temperature endpoint
+        function fetchData() {
+            loadingSpinner.style.display = 'block';
+            fetch('/temperature')
+                .then(response => response.json())
+                .then(data => {
+                    temperatureData = data;
+                    renderCharts();
+                })
+                .catch(error => console.error('Error fetching data:', error))
+                .finally(() => {
+                    loadingSpinner.style.display = 'none';
+                });
+        }
+
+        // Render charts with fetched data
+        function renderCharts() {
+            const monthlyTemperatures = Array(12).fill(0);
+            const monthlyCounts = Array(12).fill(0);
+            const regionTemperatures = {};
+
+            // Process data for charts
+            temperatureData.forEach(item => {
+                const month = new Date(item.date).getMonth(); // 0-indexed month
+                monthlyTemperatures[month] += parseFloat(item.temperature);
+                monthlyCounts[month] += 1;
+
+                const region = item.region;
+                if (!regionTemperatures[region]) {
+                    regionTemperatures[region] = { totalTemp: 0, count: 0 };
+                }
+                regionTemperatures[region].totalTemp += parseFloat(item.temperature);
+                regionTemperatures[region].count += 1;
+            });
+
+            // Calculate average temperatures for months
+            const avgMonthlyTemperatures = monthlyTemperatures.map((temp, index) => temp / (monthlyCounts[index] || 1));
+
+            // Prepare data for region chart
+            const regions = Object.keys(regionTemperatures);
+            const avgRegionTemperatures = regions.map(region => regionTemperatures[region].totalTemp / regionTemperatures[region].count);
+
+            // Render Average Temperature by Month Chart
+            new Chart(ctxMonth, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                    datasets: [{
+                        label: 'Average Temperature (°F)',
+                        data: avgMonthlyTemperatures,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Average Temperature by Month'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Month'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Temperature (°F)'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Render Average Temperature by Region Chart as Horizontal Bar
+            new Chart(ctxRegion, {
+                type: 'bar',
+                data: {
+                    labels: regions,
+                    datasets: [{
+                        label: 'Average Temperature (°F)',
+                        data: avgRegionTemperatures,
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',  // Horizontal bar chart
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Average Temperature by Region'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Temperature (°F)'
+                            },
+                            beginAtZero: true
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Region'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initial data fetch
+        fetchData();
+    </script>
+{% endblock %}
